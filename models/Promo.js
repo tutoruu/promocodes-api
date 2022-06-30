@@ -1,74 +1,108 @@
 const Mongoose = require("mongoose");
-const { getPromoByCode } = require("../helpers/getters.js");
 
 const promoSchema = new Mongoose.Schema({
-    name: String,
-    code: {
-        type: String,
-        required: true
+  name: String,
+  code: {
+    type: String,
+    required: true,
+  },
+  max_uses: {
+    type: Number,
+    default: 1,
+  },
+  max_uses_per_user: {
+    type: Number,
+    default: 1,
+  },
+  restrict_to: [String],
+  discount: {
+    type: Number,
+    required: true,
+  },
+  discount_type: {
+    type: String,
+    default: "percentage", // or hard_amount (20% vs 20EGP)
+  },
+  used_by: [
+    {
+      user: String,
+      frequency: Number,
     },
-    max_uses: {
-        type: Number,
-        default: 1
-    },
-    max_uses_per_user: {
-        type: Number,
-        default: 1
-    },
-    restrict_to: [{ ref: "User", type: Mongoose.Types.ObjectId }],
-    discount: {
-        type: Number,
-        required: true
-    },
-    discount_type: {
-        type: String,
-        default: "percentage" // or hard_amount (20% vs 20EGP)
-    },
-    used_by: [{
-        user: { ref: "User", type: Mongoose.Types.ObjectId },
-        frequency: Number
-    }],
-    expiry_date: {
-        type: Date,
-        default: new Date().setDate(new Date().getDate() + 7) // expires after 1 week by default
-    },
-    is_expired: {
-        type: Boolean,
-        default: false
-    }
+  ],
+  expiry_date: {
+    type: Date,
+    required: true,
+  },
+  is_expired: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-promoSchema.methods.generateCode = async function () {
-    // send get request to random word generator and concatonate the words
-    let code = axios.get('https://random-word-api.herokuapp.com/word?length=3').join('-');
-    
-    // if code already exists -> retry
-    let exists = await getPromoByCode(code)
-    if (exists) return this.generateCode();
-    
-    return code
-}
+promoSchema.methods.getUser = function (user_id) {
+  let matchedUsers = this.used_by.filter((use) => use.user === user_id);
+  if (!matchedUsers || matchedUsers?.length === 0) return;
+  return matchedUsers[0];
+};
 
-promoSchema.methods.getUser = function (user) {
-    let matchedUsers = this.used_by.filter(use => use.user === user);
-    if(!matchedUsers || matchedUsers?.length === 0) return;
-    return matchedUsers[0]
-}
+promoSchema.methods.incrementUserFrequency = async function (user_id) {
+  let matchedUsers = this.used_by.filter((use) => use.user === user_id);
+  if (!matchedUsers || matchedUsers?.length === 0)
+    this.used_by.push({ user: user_id, frequency: 1 });
+  else matchedUsers[0].frequency++;
+
+  await this.save();
+  return matchedUsers[0];
+};
 
 promoSchema.methods.computeNumberOfUses = function () {
-    let uses = 0;
-    for(use of this.used_by) uses += use.frequency;
-    return uses
-}
+  let uses = 0;
+  for (use of this.used_by) uses += use.frequency;
+  return uses;
+};
 
-promoSchema.methods.isUserEligibile = function(user) {
-    if (!!this.restrict_to && !this.restrict_to.includes(user.email)) return false;
-    if (this.max_uses >= this.computeNumberOfUses()) return false;
-    
-    let promoUser = this.getUser(user.email)
-    if (!!promoUser && this.max_uses_per_user >= promoUser.frequency) return false;
-    
-    return true
-}
+promoSchema.methods.isExpired = async function () {
+  let today = new Date();
+  if (
+    this.is_expired ||
+    today >= this.expiry_date ||
+    this.max_uses <= this.computeNumberOfUses()
+  ) {
+    this.is_expired = true;
+    await this.save();
+    return { message: "Promocode expired", eligible: false };
+  }
+  return { eligible: true };
+};
 
-module.exports = Mongoose.model("Promo", promoSchema)
+promoSchema.methods.isUserEligible = async function (user_id) {
+  let promoUser = this.getUser(user_id);
+  if (!!promoUser && this.max_uses_per_user <= promoUser.frequency)
+    return { message: "Maximum uses reached", eligible: false };
+  else if (
+    !!this.restrict_to &&
+    !!this.restrict_to.length > 0 &&
+    !this.restrict_to.includes(user_id)
+  )
+    return {
+      message: "User doesn't have access to use this promocode",
+      eligible: false,
+    };
+  else return await this.isExpired();
+};
+
+promoSchema.methods.use = async function (user_id) {
+  const status = await this.isUserEligible(user_id);
+  if (!status.eligible)
+    return {
+      message: status.message || "User ineligeble to use code",
+      used: false,
+    };
+  else {
+    console.log(status);
+    await this.incrementUserFrequency(user_id);
+    return { promo: this, used: true };
+  }
+};
+
+module.exports = Mongoose.model("Promo", promoSchema);
