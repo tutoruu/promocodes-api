@@ -60,12 +60,12 @@ app.get("/code/:code/:user_id", async (req, res) => {
 });
 
 app.post("/use-code", async (req, res) => {
-  const { code, user_id } = req.body;
+  const { code, user_id, product } = req.body;
   await tryCatch(async () => {
     let promo = await getPromoByCode(code);
     if (!promo) return e(404, `promo with code ${code} not found.`, res);
 
-    promo = await promo.use(user_id);
+    promo = await promo.use(user_id, product);
     if (!promo.used) return e(400, `${promo.message}`, res);
 
     promo = await getPromoByCode(code, user_id); // get updated verion with user information

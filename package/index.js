@@ -21,8 +21,8 @@ class GetPromo {
       return value - promo.discount;
   }
 
-  async use(code, user_id) {
-    const { data } = await this.api.post("use-code", { code, user_id });
+  async use(code, user_id, product) {
+    const { data } = await this.api.post("use-code", { code, user_id, product });
     return data;
   }
 }

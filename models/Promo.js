@@ -15,6 +15,7 @@ const promoSchema = new Mongoose.Schema({
     default: 1,
   },
   restrict_to: [String],
+  restrict_to_products: [String],
   discount: {
     type: Number,
     required: true,
@@ -75,31 +76,39 @@ promoSchema.methods.isExpired = async function () {
   return { eligible: true };
 };
 
-promoSchema.methods.isUserEligible = async function (user_id) {
+promoSchema.methods.isUserEligible = async function (user_id, product) {
   let promoUser = this.getUser(user_id);
   if (!!promoUser && this.max_uses_per_user <= promoUser.frequency)
     return { message: "Maximum uses reached", eligible: false };
   else if (
-    !!this.restrict_to &&
+    (!!this.restrict_to &&
     !!this.restrict_to.length > 0 &&
-    !this.restrict_to.includes(user_id)
+    !this.restrict_to.includes(user_id))
   )
     return {
       message: "User doesn't have access to use this promocode",
       eligible: false,
     };
+  else if (
+    (!!this.restrict_to_products &&
+    !!this.restrict_to_products.length > 0 &&
+    !this.restrict_to_products.includes(profuct))
+  )
+    return {
+      message: "Product not included in discount",
+      eligible: false,
+    };
   else return await this.isExpired();
 };
 
-promoSchema.methods.use = async function (user_id) {
-  const status = await this.isUserEligible(user_id);
+promoSchema.methods.use = async function (user_id, product) {
+  const status = await this.isUserEligible(user_id, product);
   if (!status.eligible)
     return {
       message: status.message || "User ineligeble to use code",
       used: false,
     };
   else {
-    console.log(status);
     await this.incrementUserFrequency(user_id);
     return { promo: this, used: true };
   }
