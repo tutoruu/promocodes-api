@@ -1,11 +1,11 @@
 const Promo = require("../models/Promo");
 
-module.exports.getPromoByCode = async function (code, user_id) {
+module.exports.getPromoByCode = async function (code, user_id, product) {
   const promo = await Promo.findOne({ code });
 
   if (!user_id || !promo) return promo;
   else {
-    const eligible = await promo.isUserEligible(user_id);
+    const eligible = await promo.isUserEligible(user_id, product);
     const times_used = promo.getUser(user_id)?.frequency || 0;
     const times_remaining = promo.max_uses_per_user - times_used;
 

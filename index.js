@@ -59,6 +59,16 @@ app.get("/code/:code/:user_id", async (req, res) => {
   }, res);
 });
 
+app.get("/code/:code/:user_id/:product_id", async (req, res) => {
+  const { code, user_id, product_id } = req.params;
+  await tryCatch(async () => {
+    const promo = await getPromoByCode(code, user_id, product_id);
+    if (!promo) return e(404, `promo with code ${code} not found.`, res);
+
+    s("Promocode found!", promo, res);
+  }, res);
+});
+
 app.post("/use-code", async (req, res) => {
   const { code, user_id, product } = req.body;
   await tryCatch(async () => {
