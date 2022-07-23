@@ -35,7 +35,8 @@ const { updatePromoFields } = require("./helpers/mutators");
 
 app.post("/create-promo", GetPromo, async (req, res) => {
   await tryCatch(async () => {
-    const promo = await new Promo(req.promo).save();
+    let promo = await new Promo(req.promo).save();
+    promo = await getPromoByCode(promo.code)
     s("New Promocode created!", { promo }, res);
   }, res);
 });
