@@ -59,10 +59,10 @@ app.get("/code/:code/:user_id", async (req, res) => {
   }, res);
 });
 
-app.get("/code/:code/:user_id/:product_id", async (req, res) => {
-  const { code, user_id, product_id } = req.params;
+app.get("/code/:code/:user_id/:product", async (req, res) => {
+  const { code, user_id, product } = req.params;
   await tryCatch(async () => {
-    const promo = await getPromoByCode(code, user_id, product_id);
+    const promo = await getPromoByCode(code, user_id, product);
     if (!promo) return e(404, `promo with code ${code} not found.`, res);
 
     s("Promocode found!", promo, res);
@@ -78,7 +78,7 @@ app.post("/use-code", async (req, res) => {
     promo = await promo.use(user_id, product);
     if (!promo.used) return e(400, `${promo.message}`, res);
 
-    promo = await getPromoByCode(code, user_id); // get updated verion with user information
+    promo = await getPromoByCode(code, user_id, product); // get updated verion with user information
     s("Promocode used!", promo, res);
   }, res);
 });

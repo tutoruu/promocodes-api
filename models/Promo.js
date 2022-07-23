@@ -92,7 +92,7 @@ promoSchema.methods.isUserEligible = async function (user_id, product) {
   else if (
     (!!this.restrict_to_products &&
     !!this.restrict_to_products.length > 0 &&
-    !this.restrict_to_products.includes(profuct))
+    !this.restrict_to_products.includes(product))
   )
     return {
       message: "Product not included in discount",
