@@ -31,6 +31,7 @@ const GetPromo = require("./middleware/GetPromo");
 const Promo = require("./models/Promo");
 const { tryCatch, s, e } = require("./helpers/utils");
 const { getPromoByCode, getPromosByProduct } = require("./helpers/getters");
+const { updatePromoFields } = require("./helpers/mutators");
 
 app.post("/create-promo", GetPromo, async (req, res) => {
   await tryCatch(async () => {
@@ -74,6 +75,17 @@ app.get("/product-codes/:product", async (req, res) => {
   await tryCatch(async () => {
     const promos = await getPromosByProduct(product);
     res.send(promos);
+  }, res);
+});
+
+app.patch("/code/:code", async (req, res) => {
+  const { code } = req.params;
+  const { fields } = req.body;
+  await tryCatch(async () => {
+    const promo = await updatePromoFields(code, fields);
+    if (!promo) return e(404, `promocode ${code} not found.`, res);
+
+    s("Promocode updated!", { promo }, res);
   }, res);
 });
 

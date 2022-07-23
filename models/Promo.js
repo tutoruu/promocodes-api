@@ -6,6 +6,10 @@ const promoSchema = new Mongoose.Schema({
     type: String,
     required: true,
   },
+  active: {
+    type: Boolean,
+    default: true,
+  },
   max_uses: {
     type: Number,
     default: 1,
@@ -77,22 +81,24 @@ promoSchema.methods.isExpired = async function () {
 };
 
 promoSchema.methods.isUserEligible = async function (user_id, product) {
+  if (!this.active) return { message: "Promocode inactive", eligible: false };
+
   let promoUser = this.getUser(user_id);
   if (!!promoUser && this.max_uses_per_user <= promoUser.frequency)
     return { message: "Maximum uses reached", eligible: false };
   else if (
-    (!!this.restrict_to &&
+    !!this.restrict_to &&
     !!this.restrict_to.length > 0 &&
-    !this.restrict_to.includes(user_id))
+    !this.restrict_to.includes(user_id)
   )
     return {
       message: "User doesn't have access to use this promocode",
       eligible: false,
     };
   else if (
-    (!!this.restrict_to_products &&
+    !!this.restrict_to_products &&
     !!this.restrict_to_products.length > 0 &&
-    !this.restrict_to_products.includes(product))
+    !this.restrict_to_products.includes(product)
   )
     return {
       message: "Promocode invalid",
