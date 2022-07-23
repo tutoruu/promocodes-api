@@ -30,7 +30,7 @@ app.get("/", (req, res) => {
 const GetPromo = require("./middleware/GetPromo");
 const Promo = require("./models/Promo");
 const { tryCatch, s, e } = require("./helpers/utils");
-const { getPromoByCode } = require("./helpers/getters");
+const { getPromoByCode, getPromosByProduct } = require("./helpers/getters");
 
 app.post("/create-promo", GetPromo, async (req, res) => {
   await tryCatch(async () => {
@@ -66,6 +66,14 @@ app.get("/code/:code/:user_id/:product", async (req, res) => {
     if (!promo) return e(404, `promo with code ${code} not found.`, res);
 
     s("Promocode found!", promo, res);
+  }, res);
+});
+
+app.get("/product-codes/:product", async (req, res) => {
+  const { product } = req.params;
+  await tryCatch(async () => {
+    const promos = await getPromosByProduct(product);
+    res.send(promos);
   }, res);
 });
 
