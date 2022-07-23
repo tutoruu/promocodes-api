@@ -95,7 +95,7 @@ promoSchema.methods.isUserEligible = async function (user_id, product) {
     !this.restrict_to_products.includes(product))
   )
     return {
-      message: "Product not included in discount",
+      message: "Promocode invalid",
       eligible: false,
     };
   else return await this.isExpired();
