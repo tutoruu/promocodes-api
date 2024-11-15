@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "undefined/subscriptions/be25b215-e508-4225-b639-7928c341e12d/resourceGroups/appsvc_linux_centralus_basic2/providers/Microsoft.Web/sites/promocodes-api",
+    "appService.deploySubpath": "."
+}
